@@ -153,7 +153,36 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36"
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" tts build
       - name: Boot Android 14 emulator
-        run: bash "$RUNNER_TEMP/aloud/src/android/boot-emulator-ci.sh"
+        run: |
+          # Keep the pinned upstream recipe, but give the guest extra RAM.
+          # Run 8 lost GMS FontsProvider and Android killed its dependent app.
+          free -m
+          boot_script="$RUNNER_TEMP/aloud/src/android/boot-emulator-ci.sh"
+          grep -Fq -- '-memory 2048 -cores 2' "$boot_script"
+          sed 's/-memory 2048 -cores 2/-memory 3072 -cores 2/' "$boot_script" > "$RUNNER_TEMP/boot-mooneva-ci.sh"
+          bash -n "$RUNNER_TEMP/boot-mooneva-ci.sh"
+          bash "$RUNNER_TEMP/boot-mooneva-ci.sh"
+      - name: Wait for stable Android system services
+        run: |
+          mkdir -p diagnostics
+          # The boot-completed property alone does not guarantee GMS has settled.
+          deadline=$((SECONDS + 240))
+          stable=0
+          previous=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            pid="$(timeout 10s adb shell pidof com.google.android.gms.persistent | tr -d '\r' || true)"
+            printf '%s gms-pid=%s stable=%s\n' "$(date -u +%FT%TZ)" "$pid" "$stable" | tee -a diagnostics/gms-readiness.txt
+            if [ -n "$pid" ] && [ "$pid" = "$previous" ]; then
+              stable=$((stable + 5))
+            else
+              stable=0
+            fi
+            previous="$pid"
+            if [ "$stable" -ge 60 ]; then break; fi
+            sleep 5
+          done
+          adb shell cat /proc/meminfo > diagnostics/guest-memory-before.txt
+          test "$stable" -ge 60
       - name: Install application and TalkBack
         run: |
           APK=build-evidence/android/app/build/outputs/apk/debug/app-debug.apk
@@ -169,7 +198,7 @@ jobs:
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" android-ready --target com.mooneva.app.debug --out readiness
       - name: Capture real TalkBack traversal of initial screen
         run: |
-          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" android --config ci/accessibility/aloud.config.json --nav current-screen --screen-id onboarding-language --talkback focus --talkback-max-steps 200 --no-gate --out aloud-report
+          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" android --config ci/accessibility/aloud.config.json --nav current-screen --screen-id onboarding-language --talkback focus --tts logging --talkback-max-steps 200 --no-gate --out aloud-report
       - name: Extended Android screen and interaction journeys
         run: node ci/accessibility/android-journey.mjs
       - name: Collect diagnostics
@@ -177,6 +206,10 @@ jobs:
         run: |
           mkdir -p diagnostics
           adb logcat -d > diagnostics/logcat.txt || true
+          adb shell cat /proc/meminfo > diagnostics/guest-memory-after.txt || true
+          adb shell dumpsys meminfo > diagnostics/meminfo.txt || true
+          adb shell dumpsys activity exit-info com.mooneva.app.debug > diagnostics/app-exit-info.txt || true
+          adb shell dumpsys activity exit-info com.google.android.gms > diagnostics/gms-exit-info.txt || true
           adb shell dumpsys accessibility > diagnostics/accessibility.txt || true
           adb shell dumpsys activity activities > diagnostics/activity.txt || true
           cp "$RUNNER_TEMP/emulator.log" diagnostics/ || true
