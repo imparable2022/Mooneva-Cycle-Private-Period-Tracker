@@ -800,6 +800,7 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                                 <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
+                                    aria-label={t('log.notes')}
                                     placeholder={t('log.add_note_placeholder', 'Add your notes specific to this date...')}
                                     className="w-full min-h-[100px] p-3 text-xs font-medium text-slate-700 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-0 focus:border-slate-300 resize-none transition-all"
                                 />

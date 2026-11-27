@@ -339,7 +339,7 @@ const Calendar: React.FC<CalendarProps> = ({
             type="button"
             onClick={() => setShowMonthPicker(open => !open)}
             aria-expanded={showMonthPicker}
-            aria-label={t('calendar.jump_to_month', 'Jump to month')}
+            aria-label={`${fmt.monthYear(year, month)}, ${t('calendar.jump_to_month', 'Jump to month')}`}
             data-testid="calendar-month-title"
             className="calendar-month-title text-xs font-black uppercase tracking-[0.18em] text-slate-800 text-center transition-opacity active:opacity-60"
           >
@@ -380,6 +380,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 {pickerYears.map(y => (
                   <button
                     key={y}
+                    aria-pressed={y === pickerYear}
                     type="button"
                     onClick={() => setPickerYear(y)}
                     className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold tabular-nums transition-all ${
@@ -399,6 +400,7 @@ const Calendar: React.FC<CalendarProps> = ({
                   return (
                     <button
                       key={m}
+                      aria-pressed={isCurrent}
                       type="button"
                       onClick={() => jumpToMonth(m)}
                       className={`rounded-xl py-2 text-[10px] font-bold uppercase tracking-wide transition-all active:scale-95 ${
