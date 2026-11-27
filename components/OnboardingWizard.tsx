@@ -202,7 +202,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
           >
             <div className="grid grid-cols-3 gap-2">
               {languages.map((lang) => {
-                const isSelected = i18n.language === lang.code;
+                const isSelected = (i18n.resolvedLanguage ?? i18n.language).split('-')[0].toLowerCase() === lang.code;
                 return (
                   <button
                     key={lang.code}

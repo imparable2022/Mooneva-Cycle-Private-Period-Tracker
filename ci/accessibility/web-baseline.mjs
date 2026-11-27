@@ -63,7 +63,7 @@ try {
   if (await dialog.isVisible()) await dialog.getByRole('button', {name:'Close'}).click();
   await capture('07-calendar');
   const month = page.getByTestId('calendar-month-title');
-  assert.ok((await month.getAttribute('aria-label')).includes((await month.innerText()).trim()));
+  assert.ok((await month.getAttribute('aria-label')).includes((await month.textContent()).trim()));
   await month.click();
   assert.equal(await page.getByTestId('calendar-month-picker').locator('button[aria-pressed="true"]').count(),2);
   await page.getByTestId('calendar-month-picker').locator('button[aria-pressed="true"]').last().click();
