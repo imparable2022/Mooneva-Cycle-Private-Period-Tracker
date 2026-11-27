@@ -1,0 +1,17 @@
+{
+  "app": {
+    "name": "Mooneva",
+    "version": "3.0.0-debug",
+    "android": {
+      "package": "com.mooneva.app.debug",
+      "activity": "com.mooneva.app.MainActivity"
+    }
+  },
+  "nav": {
+    "mode": "current-screen"
+  },
+  "android": {
+    "talkBack": "focus",
+    "talkBackMaxSteps": 200
+  }
+}
