@@ -143,16 +143,27 @@ jobs:
         with:
           path: .aloud-cache/*.apk
           key: talkback-companion-${{ env.ALOUD_COMMIT }}-${{ env.TALKBACK_COMMIT }}
+      - name: Build independent speech-request recording engine
+        run: |
+          if [ ! -x "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" ]; then
+            curl -fsSL https://services.gradle.org/distributions/gradle-8.14.3-bin.zip -o "$RUNNER_TEMP/gradle.zip"
+            unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          fi
+          export PATH="$RUNNER_TEMP/gradle-8.14.3/bin:$PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36"
+          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" tts build
       - name: Boot Android 14 emulator
         run: bash "$RUNNER_TEMP/aloud/src/android/boot-emulator-ci.sh"
       - name: Install application and TalkBack
         run: |
           APK=build-evidence/android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
-          sha256sum "$APK"
+          (cd build-evidence && sha256sum -c apk-evidence/sha256.txt)
+          test "$(cat build-evidence/apk-evidence/commit.txt)" = "$(git rev-parse HEAD)"
           adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox || true
           adb install -r -g "$APK"
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback install "$ALOUD_CACHE/talkback.apk"
+          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" tts install "$ALOUD_CACHE/logging-tts.apk"
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback status
           adb shell am start -W -n com.mooneva.app.debug/com.mooneva.app.MainActivity
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" android-ready --target com.mooneva.app.debug --out readiness

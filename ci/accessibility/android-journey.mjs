@@ -17,7 +17,7 @@ function tool(args, timeout=480000) {
   if(r.error || r.status!==0) throw new Error('Aloud '+args[0]+': '+(r.error?.message || r.status));
 }
 async function record(id, fn) {
-  try { await fn(); results.push({id, outcome:'observed'}); }
+  try { await fn(); results.push({id, outcome:'observed'}); console.log('OBSERVED '+id); }
   catch(e) { results.push({id,outcome:'failed',error:String(e)}); console.error(id,e); }
   finally { await writeFile(join(out,'summary.json'),JSON.stringify(results,null,2)); }
 }
@@ -70,7 +70,9 @@ async function click(name,{prefix=false,selector='button,[role="tab"],[role="swi
   const fn=()=>evaluate(`(() => {
     const wanted=${JSON.stringify(name.toLowerCase())};
     const found=[...document.querySelectorAll(${JSON.stringify(selector)})].filter(e=>{
-      const label=(e.getAttribute('aria-label')||e.innerText||e.textContent||'').trim().replace(/\\s+/g,' ').toLowerCase();
+      const clone=e.cloneNode(true);
+      clone.querySelectorAll('[aria-hidden="true"]').forEach(n=>n.remove());
+      const label=(e.getAttribute('aria-label')||clone.textContent||'').trim().replace(/\\s+/g,' ').toLowerCase();
       return e.getClientRects().length && !e.disabled && (${prefix} ? label.startsWith(wanted):label===wanted);
     });
     if(found.length!==1)return false;
@@ -89,12 +91,13 @@ async function expectText(text) {
 async function screen(id) {
   await record(id,async()=>{
     // Separate output roots retain raw evidence even if another screen fails.
-    tool(['android','--config','ci/accessibility/aloud.config.json','--nav','current-screen','--screen-id',id,'--talkback','focus','--talkback-max-steps','200','--no-gate','--out',join(out,id)]);
+    tool(['android','--config','ci/accessibility/aloud.config.json','--nav','current-screen','--screen-id',id,'--talkback','focus','--tts','logging','--talkback-max-steps','200','--no-gate','--out',join(out,id)]);
     const s=JSON.parse(await readFile(join(out,id,'android','summary.json'),'utf8'));
     const evidence=s.screens[id];
     assert.equal(evidence?.transcriptSource,'talkback-focus');
     assert.equal(evidence?.talkBackFocus?.coverage?.complete,true);
     assert.ok(evidence.utterances>0);
+    assert.equal(evidence.talkBackFocus.speechSource,'logging-tts');
   });
 }
 async function selectWithTalkBack(name,id,check) {
