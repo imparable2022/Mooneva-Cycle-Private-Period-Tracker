@@ -17,7 +17,7 @@ function tool(args, timeout=480000) {
   if(r.error || r.status!==0) throw new Error('Aloud '+args[0]+': '+(r.error?.message || r.status));
 }
 async function record(id, fn) {
-  try { await fn(); results.push({id, outcome:'observed'}); console.log('OBSERVED '+id); }
+  try { const details=await fn(); results.push({id, outcome:'observed',...details}); console.log('OBSERVED '+id); }
   catch(e) { results.push({id,outcome:'failed',error:String(e)}); console.error(id,e); }
   finally { await writeFile(join(out,'summary.json'),JSON.stringify(results,null,2)); }
 }
@@ -50,13 +50,17 @@ async function attach() {
     if(m.error)p.reject(new Error(JSON.stringify(m.error)));else p.resolve(m.result);
   });
 }
-async function evaluate(expression) {
+async function cdp(method,params) {
   const id=++seq;
   const result=await new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{pending.delete(id);reject(new Error('CDP timeout'));},10000);
     pending.set(id,{resolve,reject,timer});
-    socket.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression,returnByValue:true,awaitPromise:true,userGesture:true}}));
+    socket.send(JSON.stringify({id,method,params}));
   });
+  return result;
+}
+async function evaluate(expression) {
+  const result=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true,userGesture:true});
   if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));
   return result.result.value;
 }
@@ -88,16 +92,74 @@ async function clickSelector(selector) {
 async function expectText(text) {
   await wait(()=>evaluate(`document.body.innerText.toLowerCase().includes(${JSON.stringify(text.toLowerCase())})`),text);
 }
+// Keep the original traversal and its raw evidence. Retry only specific
+// capture failures; a reduced-motion-only observation is not a default-mode pass.
+async function captureScreen(id,root) {
+  await mkdir(root,{recursive:true});
+  const args=['android','--config','ci/accessibility/aloud.config.json','--nav','current-screen','--screen-id',id,'--talkback','focus','--tts','logging','--talkback-max-steps','200','--no-gate','--out',root];
+  const r=spawnSync(process.execPath,[cli,...args],{encoding:'utf8',timeout:480000,maxBuffer:8*1024*1024});
+  const log=[r.stdout,r.stderr,r.error?.message].filter(Boolean).join('\n');
+  console.log(log);
+  await writeFile(join(root,'capture.log'),log);
+  if(r.error || r.status!==0) {
+    const e=new Error('Aloud capture failed for '+id+': '+(r.error?.message || r.status));
+    e.captureLog=log;
+    throw e;
+  }
+  const s=JSON.parse(await readFile(join(root,'android','summary.json'),'utf8'));
+  const evidence=s.screens[id];
+  assert.equal(evidence?.transcriptSource,'talkback-focus');
+  assert.equal(evidence?.talkBackFocus?.coverage?.complete,true);
+  assert.ok(evidence.utterances>0);
+  assert.equal(evidence.talkBackFocus.speechSource,'logging-tts');
+}
+async function motionEvidence() {
+  return evaluate("({reduced:matchMedia('(prefers-reduced-motion: reduce)').matches, animations:document.getAnimations().map(a=>({name:a.animationName||a.constructor.name, state:a.playState, iterations:String(a.effect?.getTiming().iterations)}))})");
+}
 async function screen(id) {
   await record(id,async()=>{
-    // Separate output roots retain raw evidence even if another screen fails.
-    tool(['android','--config','ci/accessibility/aloud.config.json','--nav','current-screen','--screen-id',id,'--talkback','focus','--tts','logging','--talkback-max-steps','200','--no-gate','--out',join(out,id)]);
-    const s=JSON.parse(await readFile(join(out,id,'android','summary.json'),'utf8'));
-    const evidence=s.screens[id];
-    assert.equal(evidence?.transcriptSource,'talkback-focus');
-    assert.equal(evidence?.talkBackFocus?.coverage?.complete,true);
-    assert.ok(evidence.utterances>0);
-    assert.equal(evidence.talkBackFocus.speechSource,'logging-tts');
+    const root=join(out,id);
+    await mkdir(root,{recursive:true});
+    const before=await motionEvidence();
+    await writeFile(join(root,'motion-before.json'),JSON.stringify(before,null,2));
+    try {
+      await captureScreen(id,root);
+      return {captureMode:'default',attempts:1};
+    } catch(first) {
+      const log=first.captureLog||'';
+      const missingTree=/a11y-dump\.xml: No such file or directory/i.test(log);
+      const missingFocus=/no matching focus and speech evidence/i.test(log);
+      if(!missingTree && !missingFocus)throw first;
+      console.warn('Original capture failed for '+id+'; retaining evidence and retrying '+(missingTree?'with reduced motion':'in default mode'));
+      await writeFile(join(root,'first-failure.txt'),String(first)+'\n'+log);
+      // Stop any TalkBack session left by the failed capture before retrying.
+      tool(['talkback','disable'],60000);
+      if(missingTree) {
+        // Record the underlying uiautomator diagnostic without trusting a stale dump.
+        const diagnostic=spawnSync('adb',['shell','uiautomator','dump','/sdcard/mooneva-diagnostic.xml'],{encoding:'utf8',timeout:25000});
+        await writeFile(join(root,'uiautomator-diagnostic.txt'),[diagnostic.stdout,diagnostic.stderr,diagnostic.error?.message].filter(Boolean).join('\n'));
+        try {adb('shell','rm','-f','/sdcard/mooneva-diagnostic.xml');}catch{}
+        const retryRoot=join(root,'reduced-motion-retry');
+        await mkdir(retryRoot,{recursive:true});
+        try {
+          await cdp('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+          await delay(1200);
+          const after=await motionEvidence();
+          await writeFile(join(retryRoot,'motion.json'),JSON.stringify(after,null,2));
+          assert.equal(after.reduced,true,'WebView did not apply reduced-motion preference');
+          await captureScreen(id,retryRoot);
+          // A successful alternate configuration is useful evidence, but
+          // leave CI failing until the original mode is validated.
+          throw new Error('Default capture failed; reduced-motion traversal observed successfully (see reduced-motion-retry)');
+        } finally {
+          await cdp('Emulation.setEmulatedMedia',{features:[]});
+          await delay(500);
+        }
+      }
+      await delay(1200);
+      await captureScreen(id,join(root,'default-retry'));
+      return {captureMode:'default-retry',attempts:2,firstFailure:String(first)};
+    }
   });
 }
 async function selectWithTalkBack(name,id,check) {
