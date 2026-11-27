@@ -159,6 +159,8 @@ jobs:
       - name: Capture real TalkBack traversal of initial screen
         run: |
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" android --config ci/accessibility/aloud.config.json --nav current-screen --screen-id onboarding-language --talkback focus --talkback-max-steps 200 --no-gate --out aloud-report
+      - name: Extended Android screen and interaction journeys
+        run: node ci/accessibility/android-journey.mjs
       - name: Collect diagnostics
         if: always()
         run: |
@@ -174,6 +176,7 @@ jobs:
           name: talkback-baseline-evidence
           path: |
             aloud-report/
+            android-journey/
             readiness/
             diagnostics/
             build-evidence/apk-evidence/

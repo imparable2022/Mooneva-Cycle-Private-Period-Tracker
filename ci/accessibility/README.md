@@ -13,3 +13,9 @@ Follow-up: extend real TalkBack interactions to the complete onboarding, calenda
 References:
 - https://github.com/IRS-Public/aloud/tree/eec28b88a7e59a0c2a3f4060e261945465f1ca88
 - https://github.com/KarpelesLab/stipple/blob/master/.github/a11y/android/test-talkback.sh
+
+## Baseline evidence reviewed (run 46064183349)
+
+The initial TalkBack traversal reached both boundaries with 41 utterances. The language and week-start choices lacked spoken selection state. Native tree inspection flagged the WebView container as unlabeled; this is distinct from real TalkBack focus evidence, which exposed the WebView's children. Browser reports found viewport zoom restrictions and contrast violations in all 11 states, plus landmark findings in several. APK and audit provenance both name the PR merge commit, not the source branch head; retain the APK identity alongside reports.
+
+First corrections: native checkbox semantics and focus indicators, pressed choices, localized date and increment/decrement names, calendar month/year and picker state, notes label, viewport zoom and onboarding contrast. Browser assertions check these changes. Extended Android journeys use a debug-only local CDP connection to prepare screens via existing UI; only Aloud captures and explicit native interaction commands count as TalkBack evidence. Every attempted screen has separate raw evidence; incomplete captures fail, and no screen is silently substituted. The first native interaction exercises changing the week start and checks actual UI state plus native state/speech evidence. Screen preparation itself is not a screen-reader test. Coverage remains incomplete: medication entry, symptom logging, data mutation, Lab, privacy mode, reminders and report export need separate end-to-end native interactions and Spanish and physical-device retests. No personal data is used.
