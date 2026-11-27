@@ -12,7 +12,8 @@ for (let i = 0; ; i++) {
   await new Promise(r => setTimeout(r, 500));
 }
 const browser = await chromium.launch();
-const page = await browser.newPage({ locale: 'en-US', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+const context = await browser.newContext({ locale: 'en-US', viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+const page = await context.newPage();
 const summary = [];
 async function capture(id) {
   const result = await new AxeBuilder({ page }).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','best-practice']).analyze();
