@@ -23,6 +23,17 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Normalize Android SDK command-line tools path
+        run: |
+          SDKMANAGER="$(command -v sdkmanager)"
+          test -x "$SDKMANAGER"
+          if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            ln -sfn "$(dirname "$(dirname "$SDKMANAGER")")" "$ANDROID_HOME/cmdline-tools/latest"
+          fi
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
       - uses: gradle/actions/setup-gradle@v4
       - run: npm ci
       - run: npm run build
@@ -99,6 +110,17 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Normalize Android SDK command-line tools path
+        run: |
+          SDKMANAGER="$(command -v sdkmanager)"
+          test -x "$SDKMANAGER"
+          if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            ln -sfn "$(dirname "$(dirname "$SDKMANAGER")")" "$ANDROID_HOME/cmdline-tools/latest"
+          fi
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
       - name: Fetch pinned Aloud
         run: |
           git clone https://github.com/IRS-Public/aloud.git "$RUNNER_TEMP/aloud"
