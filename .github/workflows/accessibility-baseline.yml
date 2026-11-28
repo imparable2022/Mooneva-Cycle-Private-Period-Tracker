@@ -56,8 +56,9 @@ jobs:
         if: steps.apk-cache.outputs.cache-hit != 'true'
       - run: npx cap sync android
         if: steps.apk-cache.outputs.cache-hit != 'true'
-      - run: |
+      - name: Assemble debug APK
         if: steps.apk-cache.outputs.cache-hit != 'true'
+        run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
           cd android
@@ -73,14 +74,7 @@ jobs:
         run: |
           test "$(cat apk-evidence/inputs.txt)" = "$(python3 ci/accessibility/apk-fingerprint.py)"
           sha256sum -c apk-evidence/sha256.txt
-          grep -Eq '^[0-9a-f]{40}      - uses: actions/upload-artifact@v4
-        with:
-          name: mooneva-debug-apk
-          path: |
-            android/app/build/outputs/apk/debug/app-debug.apk
-            apk-evidence/
-          if-no-files-found: error
- apk-evidence/commit.txt
+          grep -Eq '^[0-9a-f]{40}$' apk-evidence/commit.txt
           echo "APK built from $(cat apk-evidence/commit.txt); testing $(git rev-parse HEAD)"
           git rev-parse HEAD > apk-evidence/test-commit.txt
       - uses: actions/cache/save@v4
@@ -243,45 +237,7 @@ jobs:
           (cd build-evidence && sha256sum -c apk-evidence/sha256.txt)
           test "$(cat build-evidence/apk-evidence/test-commit.txt)" = "$(git rev-parse HEAD)"
           test "$(cat build-evidence/apk-evidence/inputs.txt)" = "$(python3 ci/accessibility/apk-fingerprint.py)"
-          grep -Eq '^[0-9a-f]{40}
-          adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox || true
-          adb install -r -g "$APK"
-          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback install "$ALOUD_CACHE/talkback.apk"
-          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" tts install "$ALOUD_CACHE/logging-tts.apk"
-          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback status
-      - name: Capture real TalkBack traversal of initial screen
-        run: |
-          bash -n ci/accessibility/initial-capture.sh
-          bash ci/accessibility/initial-capture.sh
-      - name: Extended Android screen and interaction journeys
-        run: node ci/accessibility/android-journey.mjs
-      - name: Collect diagnostics
-        if: always()
-        run: |
-          mkdir -p diagnostics
-          adb logcat -d > diagnostics/logcat.txt || true
-          adb shell cat /proc/meminfo > diagnostics/guest-memory-after.txt || true
-          adb shell dumpsys meminfo > diagnostics/meminfo.txt || true
-          adb shell dumpsys activity exit-info com.mooneva.app.debug > diagnostics/app-exit-info.txt || true
-          adb shell dumpsys activity exit-info com.google.android.gms > diagnostics/gms-exit-info.txt || true
-          adb shell dumpsys accessibility > diagnostics/accessibility.txt || true
-          adb shell dumpsys activity activities > diagnostics/activity.txt || true
-          cp "$RUNNER_TEMP/emulator.log" diagnostics/ || true
-          printf 'Aloud %s\nTalkBack %s\n' "$ALOUD_COMMIT" "$TALKBACK_COMMIT" > diagnostics/versions.txt
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: talkback-baseline-evidence
-          path: |
-            aloud-report/
-            aloud-report-retry/
-            android-journey/
-            readiness/
-            readiness-retry/
-            diagnostics/
-            build-evidence/apk-evidence/
-          if-no-files-found: error
- build-evidence/apk-evidence/commit.txt
+          grep -Eq '^[0-9a-f]{40}$' build-evidence/apk-evidence/commit.txt
           adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox || true
           adb install -r -g "$APK"
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback install "$ALOUD_CACHE/talkback.apk"
