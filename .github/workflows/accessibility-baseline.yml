@@ -14,19 +14,33 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Identify APK build inputs
+        id: apk-inputs
+        run: echo "fingerprint=$(python3 ci/accessibility/apk-fingerprint.py)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        id: apk-cache
+        with:
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            apk-evidence/
+          key: mooneva-debug-apk-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.apk-inputs.outputs.fingerprint }}
       - uses: actions/setup-node@v4
+        if: steps.apk-cache.outputs.cache-hit != 'true'
         with:
           node-version: '24'
           cache: npm
       - uses: actions/setup-java@v4
+        if: steps.apk-cache.outputs.cache-hit != 'true'
         with:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        if: steps.apk-cache.outputs.cache-hit != 'true'
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - name: Normalize Android SDK command-line tools path
+        if: steps.apk-cache.outputs.cache-hit != 'true'
         run: |
           SDKMANAGER="$(command -v sdkmanager)"
           test -x "$SDKMANAGER"
@@ -35,19 +49,47 @@ jobs:
           fi
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.apk-cache.outputs.cache-hit != 'true'
       - run: npm ci
+        if: steps.apk-cache.outputs.cache-hit != 'true'
       - run: npm run build
+        if: steps.apk-cache.outputs.cache-hit != 'true'
       - run: npx cap sync android
+        if: steps.apk-cache.outputs.cache-hit != 'true'
       - run: |
+        if: steps.apk-cache.outputs.cache-hit != 'true'
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
           cd android
           bash gradlew :app:assembleDebug --no-daemon
       - name: Record APK identity
+        if: steps.apk-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p apk-evidence
           sha256sum android/app/build/outputs/apk/debug/app-debug.apk > apk-evidence/sha256.txt
           git rev-parse HEAD > apk-evidence/commit.txt
+          python3 ci/accessibility/apk-fingerprint.py > apk-evidence/inputs.txt
+      - name: Verify APK provenance and record test checkout
+        run: |
+          test "$(cat apk-evidence/inputs.txt)" = "$(python3 ci/accessibility/apk-fingerprint.py)"
+          sha256sum -c apk-evidence/sha256.txt
+          grep -Eq '^[0-9a-f]{40}      - uses: actions/upload-artifact@v4
+        with:
+          name: mooneva-debug-apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            apk-evidence/
+          if-no-files-found: error
+ apk-evidence/commit.txt
+          echo "APK built from $(cat apk-evidence/commit.txt); testing $(git rev-parse HEAD)"
+          git rev-parse HEAD > apk-evidence/test-commit.txt
+      - uses: actions/cache/save@v4
+        if: steps.apk-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            apk-evidence/
+          key: mooneva-debug-apk-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.apk-inputs.outputs.fingerprint }}
       - uses: actions/upload-artifact@v4
         with:
           name: mooneva-debug-apk
@@ -143,7 +185,13 @@ jobs:
         with:
           path: .aloud-cache/*.apk
           key: talkback-companion-${{ env.ALOUD_COMMIT }}-${{ env.TALKBACK_COMMIT }}
+      - uses: actions/cache/restore@v4
+        id: tts-cache
+        with:
+          path: .aloud-cache/logging-tts.apk
+          key: logging-tts-v1-${{ runner.os }}-${{ env.ALOUD_COMMIT }}
       - name: Build independent speech-request recording engine
+        if: steps.tts-cache.outputs.cache-hit != 'true'
         run: |
           if [ ! -x "$RUNNER_TEMP/gradle-8.14.3/bin/gradle" ]; then
             curl -fsSL https://services.gradle.org/distributions/gradle-8.14.3-bin.zip -o "$RUNNER_TEMP/gradle.zip"
@@ -152,6 +200,11 @@ jobs:
           export PATH="$RUNNER_TEMP/gradle-8.14.3/bin:$PATH"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36"
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" tts build
+      - uses: actions/cache/save@v4
+        if: steps.tts-cache.outputs.cache-hit != 'true'
+        with:
+          path: .aloud-cache/logging-tts.apk
+          key: logging-tts-v1-${{ runner.os }}-${{ env.ALOUD_COMMIT }}
       - name: Boot Android 14 emulator
         run: |
           # Keep the pinned upstream recipe, but give the guest extra RAM.
@@ -188,7 +241,47 @@ jobs:
           APK=build-evidence/android/app/build/outputs/apk/debug/app-debug.apk
           test -f "$APK"
           (cd build-evidence && sha256sum -c apk-evidence/sha256.txt)
-          test "$(cat build-evidence/apk-evidence/commit.txt)" = "$(git rev-parse HEAD)"
+          test "$(cat build-evidence/apk-evidence/test-commit.txt)" = "$(git rev-parse HEAD)"
+          test "$(cat build-evidence/apk-evidence/inputs.txt)" = "$(python3 ci/accessibility/apk-fingerprint.py)"
+          grep -Eq '^[0-9a-f]{40}
+          adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox || true
+          adb install -r -g "$APK"
+          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback install "$ALOUD_CACHE/talkback.apk"
+          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" tts install "$ALOUD_CACHE/logging-tts.apk"
+          node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback status
+      - name: Capture real TalkBack traversal of initial screen
+        run: |
+          bash -n ci/accessibility/initial-capture.sh
+          bash ci/accessibility/initial-capture.sh
+      - name: Extended Android screen and interaction journeys
+        run: node ci/accessibility/android-journey.mjs
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p diagnostics
+          adb logcat -d > diagnostics/logcat.txt || true
+          adb shell cat /proc/meminfo > diagnostics/guest-memory-after.txt || true
+          adb shell dumpsys meminfo > diagnostics/meminfo.txt || true
+          adb shell dumpsys activity exit-info com.mooneva.app.debug > diagnostics/app-exit-info.txt || true
+          adb shell dumpsys activity exit-info com.google.android.gms > diagnostics/gms-exit-info.txt || true
+          adb shell dumpsys accessibility > diagnostics/accessibility.txt || true
+          adb shell dumpsys activity activities > diagnostics/activity.txt || true
+          cp "$RUNNER_TEMP/emulator.log" diagnostics/ || true
+          printf 'Aloud %s\nTalkBack %s\n' "$ALOUD_COMMIT" "$TALKBACK_COMMIT" > diagnostics/versions.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: talkback-baseline-evidence
+          path: |
+            aloud-report/
+            aloud-report-retry/
+            android-journey/
+            readiness/
+            readiness-retry/
+            diagnostics/
+            build-evidence/apk-evidence/
+          if-no-files-found: error
+ build-evidence/apk-evidence/commit.txt
           adb shell pm disable-user --user 0 com.google.android.googlequicksearchbox || true
           adb install -r -g "$APK"
           node "$RUNNER_TEMP/aloud/bin/aloud.mjs" talkback install "$ALOUD_CACHE/talkback.apk"
