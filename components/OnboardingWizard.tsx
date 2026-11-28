@@ -195,20 +195,22 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               }}
             />
           </div>
-          <h1 className="text-xs text-slate-400 font-medium mb-6 tracking-wide">Choose your language</h1>
+          <h1 className="text-xs text-slate-600 font-medium mb-6 tracking-wide">Choose your language</h1>
           <div
             className="w-full max-w-sm bg-[#F0F2F5] rounded-2xl p-4 mb-auto"
             style={{ boxShadow: 'inset 4px 4px 8px rgba(163, 177, 198, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.8)' }}
           >
             <div className="grid grid-cols-3 gap-2">
               {languages.map((lang) => {
-                const isSelected = i18n.language === lang.code;
+                const isSelected = (i18n.resolvedLanguage ?? i18n.language).split('-')[0].toLowerCase() === lang.code;
                 return (
                   <button
                     key={lang.code}
+                    lang={lang.code}
+                    aria-pressed={isSelected}
                     onClick={() => i18n.changeLanguage(lang.code)}
                     className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl transition-all ${isSelected
-                      ? 'bg-[#7598a0] text-white scale-[0.98]'
+                      ? 'bg-[#486b74] text-white scale-[0.98]'
                       : 'bg-white text-slate-600 hover:bg-slate-50'
                       }`}
                     style={isSelected ? {
@@ -223,7 +225,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               })}
             </div>
           </div>
-          <h2 className="text-xs text-slate-400 font-medium mt-6 mb-3 tracking-wide">{t('settings.first_day_of_week')}</h2>
+          <h2 className="text-xs text-slate-600 font-medium mt-6 mb-3 tracking-wide">{t('settings.first_day_of_week')}</h2>
           <div
             className="w-full max-w-sm bg-[#F0F2F5] rounded-2xl p-2 flex gap-2"
             style={{ boxShadow: 'inset 4px 4px 8px rgba(163, 177, 198, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.8)' }}
@@ -233,9 +235,10 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               return (
                 <button
                   key={day}
+                  aria-pressed={isSelected}
                   onClick={() => setFirstDayOfWeek(day)}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${isSelected
-                    ? 'bg-[#7598a0] text-white'
+                    ? 'bg-[#486b74] text-white'
                     : 'bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   style={isSelected ? {
@@ -253,7 +256,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
         <div className="flex-shrink-0 w-full max-w-sm mx-auto pt-4 pb-2">
           <button
             onClick={nextStep}
-            className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-[#7598a0] transition-all active:scale-[0.98]"
+            className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-[#486b74] transition-all active:scale-[0.98]"
             style={{ boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' }}
           >
             {t('common.continue')}
@@ -290,13 +293,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
       <div className="flex-shrink-0 space-y-3 w-full max-w-sm mx-auto pt-4 pb-2">
         <button
           onClick={nextStep}
-          className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#7598a0] transition-all active:scale-[0.98]"
+          className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#486b74] transition-all active:scale-[0.98]"
           style={{ boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' }}
         >
           {t('onboarding.trust.start')}
         </button>
         <button
-          className="w-full text-[10px] font-bold uppercase tracking-widest text-[#7598a0] hover:text-[#5a767d] transition-colors"
+          className="w-full text-[10px] font-bold uppercase tracking-widest text-[#486b74] hover:text-[#5a767d] transition-colors"
           onClick={() => alert(t('onboarding.trust.backup_alert'))}
         >
           {t('onboarding.trust.backup_hint')}
@@ -333,8 +336,10 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   return (
                     <button
                       key={dateStr}
+                      aria-label={`${fmt.weekday(date)}, ${fmt.dayMonthYear(date)}`}
+                      aria-pressed={isSelected}
                       onClick={() => setLastPeriodDate(dateStr)}
-                      className={`flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-xl transition-all flex-shrink-0 ${isSelected ? 'bg-[#7598a0] text-white shadow-md' : 'text-slate-500 hover:bg-white/50'}`}
+                      className={`flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-xl transition-all flex-shrink-0 ${isSelected ? 'bg-[#486b74] text-white shadow-md' : 'text-slate-500 hover:bg-white/50'}`}
                     >
                       <span className="text-[10px] font-bold uppercase">{fmt.monthName(parts.year, parts.month)}</span>
                       <span className="text-xl font-black">{formatNumber(parts.day)}</span>
@@ -344,32 +349,35 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               </div>
             ) : (
               <div className="p-6 bg-[#F0F2F5] rounded-2xl border border-dashed border-slate-300 text-center">
-                <span className="text-xs font-medium text-slate-400">{t('onboarding.calibration.starting_fresh')}</span>
+                <span className="text-xs font-medium text-slate-600">{t('onboarding.calibration.starting_fresh')}</span>
               </div>
             )}
-            <div className="flex items-center gap-3 px-2 cursor-pointer" onClick={() => setDontRemember(!dontRemember)}>
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${dontRemember ? 'bg-[#7598a0] border-[#7598a0]' : 'border-slate-300'}`}>
+            <label className="flex items-center gap-3 px-2 cursor-pointer">
+              <input type="checkbox" checked={dontRemember} onChange={e => setDontRemember(e.target.checked)} className="sr-only peer" />
+              <div aria-hidden="true" className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-slate-700 ${dontRemember ? 'bg-[#7598a0] border-[#7598a0]' : 'border-slate-300'}`}>
                 {dontRemember && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
               </div>
               <span className="text-xs font-bold text-slate-500 select-none">{t('onboarding.calibration.dont_remember')}</span>
-            </div>
+            </label>
           </div>
           <div className="space-y-4">
             <div className="flex justify-between items-end px-2">
               <label className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('onboarding.calibration.cycle_length_label')}</label>
-              <span className="text-[10px] text-slate-400 font-medium">{t('onboarding.calibration.cycle_length_sub')}</span>
+              <span className="text-[10px] text-slate-600 font-medium">{t('onboarding.calibration.cycle_length_sub')}</span>
             </div>
             <div
               className="flex items-center justify-between bg-[#F0F2F5] p-2 rounded-2xl"
               style={{ boxShadow: '8px 8px 16px rgba(163, 177, 198, 0.2), -8px -8px 16px rgba(255, 255, 255, 0.6)' }}
             >
               <button
+                aria-label={`${t('common.decrease')} ${t('onboarding.calibration.cycle_length_label')}`}
                 onClick={() => setCycleSetup(s => ({ ...s, cycleLength: Math.max(21, s.cycleLength - 1) }))}
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-500 text-xl font-bold bg-[#F0F2F5] active:scale-95 transition-all"
                 style={{ boxShadow: '5px 5px 10px rgba(163, 177, 198, 0.3), -5px -5px 10px rgba(255, 255, 255, 0.8)' }}
               >-</button>
-              <span className="text-2xl font-black text-slate-700">{cycleSetup.cycleLength} <span className="text-sm font-bold text-slate-400">{t('common.days')}</span></span>
+              <span aria-live="polite" aria-atomic="true" className="text-2xl font-black text-slate-700">{cycleSetup.cycleLength} <span className="text-sm font-bold text-slate-600">{t('common.days')}</span></span>
               <button
+                aria-label={`${t('common.increase')} ${t('onboarding.calibration.cycle_length_label')}`}
                 onClick={() => setCycleSetup(s => ({ ...s, cycleLength: Math.min(45, s.cycleLength + 1) }))}
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-500 text-xl font-bold bg-[#F0F2F5] active:scale-95 transition-all"
                 style={{ boxShadow: '5px 5px 10px rgba(163, 177, 198, 0.3), -5px -5px 10px rgba(255, 255, 255, 0.8)' }}
@@ -379,19 +387,21 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
           <div className="space-y-4">
             <div className="flex justify-between items-end px-2">
               <label className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('onboarding.calibration.period_duration_label')}</label>
-              <span className="text-[10px] text-slate-400 font-medium">{t('onboarding.calibration.period_duration_sub')}</span>
+              <span className="text-[10px] text-slate-600 font-medium">{t('onboarding.calibration.period_duration_sub')}</span>
             </div>
             <div
               className="flex items-center justify-between bg-[#F0F2F5] p-2 rounded-2xl"
               style={{ boxShadow: '8px 8px 16px rgba(163, 177, 198, 0.2), -8px -8px 16px rgba(255, 255, 255, 0.6)' }}
             >
               <button
+                aria-label={`${t('common.decrease')} ${t('onboarding.calibration.period_duration_label')}`}
                 onClick={() => setCycleSetup(s => ({ ...s, periodLength: Math.max(2, s.periodLength - 1) }))}
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-500 text-xl font-bold bg-[#F0F2F5] active:scale-95 transition-all"
                 style={{ boxShadow: '5px 5px 10px rgba(163, 177, 198, 0.3), -5px -5px 10px rgba(255, 255, 255, 0.8)' }}
               >-</button>
-              <span className="text-2xl font-black text-slate-700">{cycleSetup.periodLength} <span className="text-sm font-bold text-slate-400">{t('common.days')}</span></span>
+              <span aria-live="polite" aria-atomic="true" className="text-2xl font-black text-slate-700">{cycleSetup.periodLength} <span className="text-sm font-bold text-slate-600">{t('common.days')}</span></span>
               <button
+                aria-label={`${t('common.increase')} ${t('onboarding.calibration.period_duration_label')}`}
                 onClick={() => setCycleSetup(s => ({ ...s, periodLength: Math.min(settingBounds(s).period.max, s.periodLength + 1) }))}
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-500 text-xl font-bold bg-[#F0F2F5] active:scale-95 transition-all"
                 style={{ boxShadow: '5px 5px 10px rgba(163, 177, 198, 0.3), -5px -5px 10px rgba(255, 255, 255, 0.8)' }}
@@ -407,13 +417,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               }
               nextStep();
             }}
-            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#7598a0] transition-all active:scale-[0.98]"
+            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#486b74] transition-all active:scale-[0.98]"
             style={{ boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' }}
           >
             {t('common.next')}
           </button>
-          <button onClick={prevStep} className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('common.back')}</button>
-          <p className="text-[9px] text-center text-slate-400">{t('onboarding.calibration.settings_hint')}</p>
+          <button onClick={prevStep} className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-600">{t('common.back')}</button>
+          <p className="text-[9px] text-center text-slate-600">{t('onboarding.calibration.settings_hint')}</p>
         </div>
       </div>
     );
@@ -436,17 +446,18 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
             return (
               <button
                 key={g.id}
+                aria-pressed={active}
                 onClick={() => selectGoal(g.id)}
-                className={`w-full p-4 rounded-2xl text-left rtl:text-right transition-all flex items-center gap-4 group relative overflow-hidden ${active ? 'text-[#7598a0]' : 'text-slate-600'}`}
+                className={`w-full p-4 rounded-2xl text-left rtl:text-right transition-all flex items-center gap-4 group relative overflow-hidden ${active ? 'text-[#486b74]' : 'text-slate-600'}`}
                 style={active
                   ? { boxShadow: 'inset 4px 4px 8px rgba(163, 177, 198, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.8)', backgroundColor: '#F0F2F5' }
                   : { boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.3), -6px -6px 12px rgba(255, 255, 255, 0.7)', backgroundColor: '#F0F2F5' }
                 }
               >
-                <span className="text-2xl">{g.icon}</span>
+                <span aria-hidden="true" className="text-2xl">{g.icon}</span>
                 <div>
                   <div className="text-sm font-black uppercase tracking-wider">{g.label}</div>
-                  <div className="text-[10px] font-medium text-slate-400 mt-0.5">{g.sub}</div>
+                  <div className="text-[10px] font-medium text-slate-600 mt-0.5">{g.sub}</div>
                 </div>
                 {active && <div className="absolute ltr:right-4 rtl:left-4 w-2 h-2 rounded-full bg-[#7598a0] shadow-[0_0_8px_#7598a0]" />}
               </button>
@@ -456,13 +467,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
         <div className="flex-shrink-0 pt-3 space-y-3">
           <button
             onClick={nextStep}
-            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#7598a0] transition-all active:scale-[0.98]"
+            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#486b74] transition-all active:scale-[0.98]"
             style={{ boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' }}
           >
             {t('common.continue')}
           </button>
-          <button onClick={prevStep} className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('common.back')}</button>
-          <p className="text-[9px] text-center text-slate-400">{t('onboarding.calibration.settings_hint')}</p>
+          <button onClick={prevStep} className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-600">{t('common.back')}</button>
+          <p className="text-[9px] text-center text-slate-600">{t('onboarding.calibration.settings_hint')}</p>
         </div>
       </div>
     );
@@ -477,13 +488,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
         <div className="flex-shrink-0 pt-3 space-y-3">
           <button
             onClick={nextStep}
-            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#7598a0] transition-all active:scale-[0.98]"
+            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#486b74] transition-all active:scale-[0.98]"
             style={{ boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' }}
           >
             {t('common.continue')}
           </button>
-          <button onClick={prevStep} className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('common.back')}</button>
-          <p className="text-[9px] text-center text-slate-400">{t('onboarding.calibration.settings_hint')}</p>
+          <button onClick={prevStep} className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-600">{t('common.back')}</button>
+          <p className="text-[9px] text-center text-slate-600">{t('onboarding.calibration.settings_hint')}</p>
         </div>
       </div>
     );
@@ -493,13 +504,13 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
     return (
       <div className="flex flex-col h-full min-h-0 py-2 px-2">
         <h2 className="flex-shrink-0 text-2xl font-black text-slate-800 tracking-tight text-center mb-1">{t('onboarding.discrete.title')}</h2>
-        <p className="flex-shrink-0 text-xs text-slate-400 text-center mb-3 font-medium max-w-xs mx-auto leading-relaxed">{t('onboarding.discrete.desc')}</p>
+        <p className="flex-shrink-0 text-xs text-slate-600 text-center mb-3 font-medium max-w-xs mx-auto leading-relaxed">{t('onboarding.discrete.desc')}</p>
         <div className="flex-1 min-h-0 relative mb-3">
           <div className="absolute inset-0 bg-slate-900 rounded-[2rem] border-4 border-slate-800 shadow-2xl overflow-hidden flex flex-col">
             <div className="bg-slate-50 flex-1 p-4 flex flex-col relative overflow-hidden">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800">{t('onboarding.discrete.task_header')}</h3>
-                <div className="text-slate-400 p-2">
+                <div className="text-slate-600 p-2">
                   <div className="w-5 h-5 border-2 border-slate-300 rounded" />
                 </div>
               </div>
@@ -512,14 +523,15 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                 ))}
               </div>
               {!discreteUnlocked && !pressing && (
-                <div className="absolute bottom-[80px] right-[40px] z-40 animate-bounce pointer-events-none">
-                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#7598a0]">
+                <div aria-hidden="true" className="absolute bottom-[80px] right-[40px] z-40 pointer-events-none">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#486b74]">
                     <path d="M10 10L30 30M30 30V15M30 30H15" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               )}
               <div className="absolute bottom-6 right-6 z-30">
                 <button
+                  aria-label={t(discreteUnlocked ? 'onboarding.discrete.success_desc' : 'onboarding.discrete.tutorial_overlay_desc')}
                   onMouseDown={handlePressStart}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
@@ -527,7 +539,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   onTouchEnd={(e) => { e.preventDefault(); handlePressEnd(); }}
                   onTouchCancel={handlePressEnd}
                   onContextMenu={(e) => e.preventDefault()}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 relative touch-none select-none ${discreteUnlocked ? 'bg-green-500' : 'bg-[#7598a0]'} ${!discreteUnlocked && !pressing ? 'ring-4 ring-[#7598a0]/30 animate-pulse' : ''}`}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 relative touch-none select-none ${discreteUnlocked ? 'bg-green-500' : 'bg-[#7598a0]'} ${!discreteUnlocked && !pressing ? 'ring-4 ring-[#7598a0]/30' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     {discreteUnlocked ? <path d="M20 6L9 17l-5-5" /> : <path d="M12 5v14M5 12h14" />}
@@ -550,7 +562,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   <div className="bg-white p-4 rounded-xl shadow-lg">
                     <p className="text-xs font-bold text-slate-800">{t('onboarding.discrete.tutorial_overlay_title')}</p>
                     <p className="text-xs text-slate-500 mt-1">{t('onboarding.discrete.tutorial_overlay_desc')}</p>
-                    <div className="mt-3 text-[10px] text-[#7598a0] font-black uppercase tracking-wider">{t('onboarding.discrete.tutorial_overlay_hint')}</div>
+                    <div className="mt-3 text-[10px] text-[#486b74] font-black uppercase tracking-wider">{t('onboarding.discrete.tutorial_overlay_hint')}</div>
                   </div>
                 </div>
               )}
@@ -571,15 +583,15 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
             onClick={nextStep}
             disabled={!discreteUnlocked}
             className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all ${discreteUnlocked
-              ? 'text-white bg-[#7598a0] active:scale-[0.98]'
+              ? 'text-white bg-[#486b74] active:scale-[0.98]'
               : 'text-slate-300 bg-[#F0F2F5] cursor-not-allowed grayscale opacity-50'}`}
             style={discreteUnlocked ? { boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' } : {}}
           >
             {discreteUnlocked ? t('common.continue') : t('onboarding.discrete.complete_tutorial')}
           </button>
           <div className="flex justify-between px-2">
-            <button onClick={prevStep} className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('common.back')}</button>
-            <button onClick={nextStep} className="text-[10px] font-bold uppercase tracking-widest text-[#7598a0]">{t('onboarding.discrete.skip_tutorial')}</button>
+            <button onClick={prevStep} className="text-[10px] font-bold uppercase tracking-widest text-slate-600">{t('common.back')}</button>
+            <button onClick={nextStep} className="text-[10px] font-bold uppercase tracking-widest text-[#486b74]">{t('onboarding.discrete.skip_tutorial')}</button>
           </div>
         </div>
       </div>
@@ -619,7 +631,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               {t('calendar.period_question', 'Period?')}
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 italic leading-relaxed">
+          <p className="text-[10px] text-slate-600 italic leading-relaxed">
             {t('onboarding.get_started.period_card_tip')}
           </p>
         </div>
@@ -629,7 +641,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
           className="bg-[#F0F2F5] p-5 rounded-3xl space-y-3"
           style={{ boxShadow: 'inset 4px 4px 8px rgba(163, 177, 198, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.7)' }}
         >
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[#7598a0]">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-[#486b74]">
             {t('onboarding.get_started.daily_card_title')}
           </p>
           <p className="text-sm text-slate-600 leading-relaxed">
@@ -643,7 +655,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   key={n}
                   className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i === 1
                     ? 'bg-[#7598a0]/20 ring-2 ring-[#7598a0] text-[#5a7d87]'
-                    : 'bg-white text-slate-400'}`}
+                    : 'bg-white text-slate-600'}`}
                   style={i !== 1 ? { boxShadow: '3px 3px 6px rgba(163, 177, 198, 0.3), -3px -3px 6px rgba(255, 255, 255, 0.9)' } : {}}
                 >
                   {n}
@@ -657,7 +669,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
       <div className="flex-shrink-0 pt-3">
         <button
           onClick={handleFinish}
-          className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#7598a0] transition-all active:scale-[0.98]"
+          className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs text-white bg-[#486b74] transition-all active:scale-[0.98]"
           style={{ boxShadow: '6px 6px 12px rgba(163, 177, 198, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.8)' }}
         >
           {t('onboarding.get_started.cta')}
@@ -667,7 +679,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
   );
 
   return (
-    <div className="fixed inset-0 bg-[#F0F2F5] z-[100] flex items-center justify-center p-4 selection:bg-[#7598a0]/20">
+    <main className="fixed inset-0 bg-[#F0F2F5] z-[100] flex items-center justify-center p-4 selection:bg-[#7598a0]/20">
       <div
         className="w-full max-w-md bg-[#F0F2F5] rounded-[32px] overflow-hidden flex flex-col relative"
         style={{
@@ -693,7 +705,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
           {step === 6 && renderGetStarted()}
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

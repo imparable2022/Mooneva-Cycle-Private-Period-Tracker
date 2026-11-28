@@ -137,7 +137,7 @@ const CustomEntryChips: React.FC<CustomEntryChipsProps> = ({
                 }}
                 placeholder={placeholder}
                 aria-label={placeholder}
-                className={`daily-log-med-input w-full ${custom ? 'p-2 text-[11px]' : 'p-3 text-xs'} font-medium text-slate-700 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-0 focus:border-slate-300 transition-all`}
+                className={`daily-log-med-input w-full ${custom ? 'p-2 text-[11px]' : 'p-3 text-xs'} font-medium text-slate-700 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-slate-700 focus-visible:ring-offset-2 transition-all`}
             />
         </div>
     );

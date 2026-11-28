@@ -363,52 +363,52 @@ export const ClinicalReportView: React.FC<ClinicalReportViewProps> = ({ onClose 
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 justify-start sm:justify-end border-t border-white/5 pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeSymptoms ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer group rounded focus-within:ring-2 focus-within:ring-white">
+                        <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeSymptoms ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
                             {includeSymptoms && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        <input type="checkbox" checked={includeSymptoms} onChange={(e) => setIncludeSymptoms(e.target.checked)} className="hidden" />
+                        <input type="checkbox" checked={includeSymptoms} onChange={(e) => setIncludeSymptoms(e.target.checked)} className="sr-only" />
                         <span className="text-[10px] font-medium text-slate-300 group-hover:text-white transition-colors select-none">{t('settings.include_symptoms')}</span>
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeNotes ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer group rounded focus-within:ring-2 focus-within:ring-white">
+                        <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeNotes ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
                             {includeNotes && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        <input type="checkbox" checked={includeNotes} onChange={(e) => setIncludeNotes(e.target.checked)} className="hidden" />
+                        <input type="checkbox" checked={includeNotes} onChange={(e) => setIncludeNotes(e.target.checked)} className="sr-only" />
                         <span className="text-[10px] font-medium text-slate-300 group-hover:text-white transition-colors select-none">{t('settings.include_notes')}</span>
                     </label>
 
                     {!kidMode && (<>
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeSex ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer group rounded focus-within:ring-2 focus-within:ring-white">
+                        <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeSex ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
                             {includeSex && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        <input type="checkbox" checked={includeSex} onChange={(e) => setIncludeSex(e.target.checked)} className="hidden" />
+                        <input type="checkbox" checked={includeSex} onChange={(e) => setIncludeSex(e.target.checked)} className="sr-only" />
                         <span className="text-[10px] font-medium text-slate-300 group-hover:text-white transition-colors select-none">{t('settings.include_sex')}</span>
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeLibido ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer group rounded focus-within:ring-2 focus-within:ring-white">
+                        <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeLibido ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
                             {includeLibido && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        <input type="checkbox" checked={includeLibido} onChange={(e) => setIncludeLibido(e.target.checked)} className="hidden" />
+                        <input type="checkbox" checked={includeLibido} onChange={(e) => setIncludeLibido(e.target.checked)} className="sr-only" />
                         <span className="text-[10px] font-medium text-slate-300 group-hover:text-white transition-colors select-none">{t('settings.include_libido')}</span>
                     </label>
                     </>)}
 
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeSecretion ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer group rounded focus-within:ring-2 focus-within:ring-white">
+                        <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeSecretion ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
                             {includeSecretion && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        <input type="checkbox" checked={includeSecretion} onChange={(e) => setIncludeSecretion(e.target.checked)} className="hidden" />
+                        <input type="checkbox" checked={includeSecretion} onChange={(e) => setIncludeSecretion(e.target.checked)} className="sr-only" />
                         <span className="text-[10px] font-medium text-slate-300 group-hover:text-white transition-colors select-none">{t('settings.include_secretion')}</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeMeds ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer group rounded focus-within:ring-2 focus-within:ring-white">
+                        <div aria-hidden="true" className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${includeMeds ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-transparent'}`}>
                             {includeMeds && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                         </div>
-                        <input type="checkbox" checked={includeMeds} onChange={(e) => setIncludeMeds(e.target.checked)} className="hidden" />
+                        <input type="checkbox" checked={includeMeds} onChange={(e) => setIncludeMeds(e.target.checked)} className="sr-only" />
                         <span className="text-[10px] font-medium text-slate-300 group-hover:text-white transition-colors select-none">{t('log.meds_report_label')}</span>
                     </label>
                 </div>

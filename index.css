@@ -1218,6 +1218,14 @@ body[data-theme="dark-neumorphism"] #report-content [class*="border-slate-"] {
   color: #5b6b82;
 }
 
+/* Calendar and daily log: decorative motion must not keep the interactive
+   surface permanently changing. Keep short entry/interaction transitions and
+   progress indicators; the static controls retain their existing meaning. */
+.calendar-screen-content :is(.animate-period-button, .animate-guide-button, .cycle-insight-moon-spin, .animate-pulse, .animate-pulse-slow, .animate-pulse-scale, .animate-blob-slow, .animate-blob-pulse, .animate-bounce) {
+  animation: none;
+  will-change: auto;
+}
+
 /* Reduced motion: stop all animations and transitions and smooth scrolling.
    Exception: animate-spin (backup progress spinner in Header.tsx) keeps running
    because it signals that work is in progress. */
