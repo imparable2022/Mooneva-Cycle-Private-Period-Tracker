@@ -199,16 +199,40 @@ jobs:
         with:
           path: .aloud-cache/logging-tts.apk
           key: logging-tts-v1-${{ runner.os }}-${{ env.ALOUD_COMMIT }}
-      - name: Boot Android 14 emulator
+      - name: Prepare Android image and snapshot cache identity
+        id: avd-inputs
         run: |
-          # Keep the pinned upstream recipe, but give the guest extra RAM.
-          # Run 8 lost GMS FontsProvider and Android killed its dependent app.
-          free -m
-          boot_script="$RUNNER_TEMP/aloud/src/android/boot-emulator-ci.sh"
-          grep -Fq -- '-memory 2048 -cores 2' "$boot_script"
-          sed 's/-memory 2048 -cores 2/-memory 3072 -cores 2/' "$boot_script" > "$RUNNER_TEMP/boot-mooneva-ci.sh"
-          bash -n "$RUNNER_TEMP/boot-mooneva-ci.sh"
-          bash "$RUNNER_TEMP/boot-mooneva-ci.sh"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "emulator" "system-images;android-34;google_apis;x86_64"
+          fingerprint="$(
+            {
+              printf '%s\n' "${ImageOS:-unknown}" "${ImageVersion:-unknown}"
+              sha256sum "$ANDROID_HOME/emulator/package.xml" "$ANDROID_HOME/system-images/android-34/google_apis/x86_64/package.xml"
+              sha256sum "$ALOUD_CACHE/talkback.apk" "$ALOUD_CACHE/logging-tts.apk" ci/accessibility/emulator-snapshot.sh
+            } | sha256sum | cut -d' ' -f1
+          )"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+          bash -n ci/accessibility/emulator-snapshot.sh
+      - uses: actions/cache/restore@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/aloud-ci.avd
+            ~/.android/avd/aloud-ci.ini
+          key: mooneva-clean-avd-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.avd-inputs.outputs.fingerprint }}
+      - name: Prepare pristine TalkBack snapshot
+        id: avd-prepare
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        run: bash ci/accessibility/emulator-snapshot.sh prepare
+      - uses: actions/cache/save@v4
+        if: steps.avd-prepare.outputs.created == 'true'
+        with:
+          path: |
+            ~/.android/avd/aloud-ci.avd
+            ~/.android/avd/aloud-ci.ini
+          key: mooneva-clean-avd-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.avd-inputs.outputs.fingerprint }}
+      - name: Boot Android 14 emulator (snapshot or cold fallback)
+        run: bash ci/accessibility/emulator-snapshot.sh start
       - name: Wait for stable Android system services
         run: |
           mkdir -p diagnostics
