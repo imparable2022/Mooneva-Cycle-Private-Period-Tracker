@@ -23,6 +23,14 @@ async function capture(id) {
   summary.push({ id, violations: result.violations.map(({id, impact, nodes}) => ({id, impact, count: nodes.length})) });
 }
 async function button(name) { await page.getByRole('button', { name, exact: true }).click(); }
+async function assertCalendarMotionSettles(id) {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  try {
+    const animations = await page.locator('.calendar-screen-content').evaluate(root => root.getAnimations({ subtree: true }).filter(a => a.effect?.getTiming().iterations === Infinity && !a.effect?.target?.classList?.contains('animate-spin')).map(a => a.animationName || a.constructor.name));
+    await writeFile(out + '/' + id + '.default-motion.json', JSON.stringify(animations, null, 2));
+    assert.deepEqual(animations, [], 'Unexpected continuous decorative motion: ' + id);
+  } finally { await page.emulateMedia({ reducedMotion: 'reduce' }); }
+}
 try {
   await page.goto(base);
   await page.getByRole('button', { name: 'Continue', exact: true }).waitFor();
@@ -53,6 +61,7 @@ try {
   await button('Continue');
   await capture('05-cycle-setup');
   await button('Continue');
+  await page.getByRole('button', { name: 'Hold the (+) button for 2 seconds.', exact: true }).waitFor();
   await page.getByRole('button', { name: 'Skip Tutorial', exact: true }).click();
   await page.getByRole('button', { name: "Let's Go", exact: true }).waitFor();
   await capture('06-get-started');
@@ -62,6 +71,7 @@ try {
   const dialog = page.getByRole('dialog', {name: "What's new"});
   if (await dialog.isVisible()) await dialog.getByRole('button', {name:'Close'}).click();
   await capture('07-calendar');
+  await assertCalendarMotionSettles('07-calendar');
   const month = page.getByTestId('calendar-month-title');
   assert.ok((await month.getAttribute('aria-label')).includes((await month.textContent()).trim()));
   await month.click();
@@ -72,6 +82,7 @@ try {
   await today.click();
   await page.getByRole('tablist').waitFor();
   await capture('08-daily-log');
+  await assertCalendarMotionSettles('08-daily-log');
   await page.getByRole('tab',{name:'Notes',exact:true}).click();
   await page.getByRole('textbox',{name:'Notes',exact:true}).waitFor();
   await capture('08b-daily-notes');

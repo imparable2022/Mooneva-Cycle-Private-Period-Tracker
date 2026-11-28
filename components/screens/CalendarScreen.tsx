@@ -226,7 +226,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             )}
 
             <main
-                className="flex-1 overflow-y-auto overflow-x-hidden px-[max(16px,calc((100%_-_32rem)/2))] pt-[20px] pb-32 relative z-10 no-scrollbar"
+                className="calendar-screen-content flex-1 overflow-y-auto overflow-x-hidden px-[max(16px,calc((100%_-_32rem)/2))] pt-[20px] pb-32 relative z-10 no-scrollbar"
             >
                 {!isCloaked && (
                     <Calendar

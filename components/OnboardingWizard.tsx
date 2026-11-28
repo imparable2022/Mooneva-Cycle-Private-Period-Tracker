@@ -523,7 +523,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                 ))}
               </div>
               {!discreteUnlocked && !pressing && (
-                <div className="absolute bottom-[80px] right-[40px] z-40 animate-bounce pointer-events-none">
+                <div aria-hidden="true" className="absolute bottom-[80px] right-[40px] z-40 pointer-events-none">
                   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#486b74]">
                     <path d="M10 10L30 30M30 30V15M30 30H15" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -531,6 +531,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
               )}
               <div className="absolute bottom-6 right-6 z-30">
                 <button
+                  aria-label={t(discreteUnlocked ? 'onboarding.discrete.success_desc' : 'onboarding.discrete.tutorial_overlay_desc')}
                   onMouseDown={handlePressStart}
                   onMouseUp={handlePressEnd}
                   onMouseLeave={handlePressEnd}
@@ -538,7 +539,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   onTouchEnd={(e) => { e.preventDefault(); handlePressEnd(); }}
                   onTouchCancel={handlePressEnd}
                   onContextMenu={(e) => e.preventDefault()}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 relative touch-none select-none ${discreteUnlocked ? 'bg-green-500' : 'bg-[#7598a0]'} ${!discreteUnlocked && !pressing ? 'ring-4 ring-[#7598a0]/30 animate-pulse' : ''}`}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 relative touch-none select-none ${discreteUnlocked ? 'bg-green-500' : 'bg-[#7598a0]'} ${!discreteUnlocked && !pressing ? 'ring-4 ring-[#7598a0]/30' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     {discreteUnlocked ? <path d="M20 6L9 17l-5-5" /> : <path d="M12 5v14M5 12h14" />}
