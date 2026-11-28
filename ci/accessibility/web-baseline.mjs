@@ -85,6 +85,8 @@ try {
   await assertCalendarMotionSettles('08-daily-log');
   await page.getByRole('tab',{name:'Notes',exact:true}).click();
   await page.getByRole('textbox',{name:'Notes',exact:true}).waitFor();
+  await page.getByRole('tabpanel',{name:'Notes',exact:true}).waitFor();
+  assert.equal(await page.getByRole('tab',{name:'Notes',exact:true}).getAttribute('aria-controls'),'daily-log-panel-notes');
   await capture('08b-daily-notes');
   await page.getByRole('tablist').getByRole('tab').last().click();
   await capture('09-daily-log-last-tab');

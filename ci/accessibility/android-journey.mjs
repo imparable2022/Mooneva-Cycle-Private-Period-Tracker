@@ -188,6 +188,55 @@ async function selectWithTalkBack(name,id,check) {
     try { if(session) await session.finish(); } finally { tool(['talkback','disable'],60000); }
   }
 }
+// Native focus and activation are the input path; CDP only observes public UI.
+// A failed native action is recorded before fixture recovery for later captures.
+async function activateNative(name,id,check,{selection=false,typeText}={}) {
+  const {createInteractionSession}=await import(pathToFileURL(join(home,'src/android/talkback-interaction.mjs')).href);
+  tool(['talkback','enable'],60000);
+  let session;
+  try {
+    session=createInteractionSession({out:join(out,'interactions'),target,screen:id});
+    await session.start();
+    const wanted=name.trim().toLowerCase().replace(/\s+/g,' ');
+    const normalize=s=>String(s??'').trim().toLowerCase().replace(/\s+/g,' ');
+    let step=await session.command('first');
+    for(let i=0;i<150;i++){
+      const native=normalize(step.after?.text);
+      const spoken=(step.speech??[]).map(s=>normalize(s.text)).join(' ');
+      const isEditor=typeText===undefined || /edit|text field|text box|text input/i.test(spoken+' '+String(step.after?.className??''));
+      if((native===wanted || spoken.includes(wanted)) && spoken.includes(wanted) && isEditor)break;
+      if(i===149)throw Error('TalkBack never announced '+name);
+      step=await session.command('next');
+    }
+    const action=await session.command('activate');
+    assert.equal(action.status,'observed','Native activation not observed');
+    if(selection) {
+      const native=action.after;
+      const speech=action.speech.map(s=>s.text).join(' ').toLowerCase();
+      assert.ok((native.checked || native.selected || /pressed|checked|selected/.test(native.stateDescription||'')) &&
+        /\b(pressed|checked|selected|on)\b/.test(speech) && !/not (pressed|checked|selected)|unselected|unchecked|\boff\b/.test(speech),
+        'Selected state not verified in native evidence and speech: '+speech);
+    }
+    if(typeText!==undefined){
+      await wait(()=>evaluate("document.activeElement?.matches('textarea[aria-label=\"Notes\"]')"),'native Notes edit focus');
+      // Synthetic hardware keyboard input after TalkBack focused the editor.
+      // This is not a gesture or a test of the soft keyboard.
+      adb('shell','input','text',typeText.replace(/ /g,'%s'));
+    }
+    await wait(check,'UI effect of TalkBack action '+id);
+    return {input:'talkback-native',keyboardInput:typeText!==undefined?'adb-hardware-text':undefined};
+  } finally {
+    try {if(session)await session.finish();} finally {tool(['talkback','disable'],60000);}
+  }
+}
+const todaySelector='button[aria-current="date"]:not([aria-hidden="true"])';
+const todayAttribute=attr=>evaluate('document.querySelector('+JSON.stringify(todaySelector)+')?.getAttribute('+JSON.stringify(attr)+')');
+const periodEditOpen=()=>evaluate("!![...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Done' && e.getClientRects().length)");
+const tabSelected=name=>evaluate("[...document.querySelectorAll('[role=tab]')].some(e=>e.textContent.trim()==="+JSON.stringify(name)+" && e.getAttribute('aria-selected')==='true')");
+async function nativeTab(name,id){
+  return activateNative(name,id,()=>tabSelected(name),{selection:true});
+}
+
 try {
   await attach();
   await expectText('Choose your language');
@@ -204,9 +253,17 @@ try {
   await click("Let's Go"); await wait(()=>evaluate("!!document.querySelector('nav')"),'main navigation');
   await click('Close',{selector:'[role="dialog"] button',optional:true});
   await screen('calendar');
-  await click('Period?'); await screen('period-edit');
-  await clickSelector('button[aria-current="date"]:not([aria-hidden="true"])');
-  await click('Done'); await screen('calendar-period');
+  await record('period-open-native',()=>activateNative('Period?','period-open-native',periodEditOpen));
+  if(!await periodEditOpen()){console.warn('Fixture recovery: open period editor via CDP');await click('Period?');}
+  await screen('period-edit');
+  await record('period-day-native',async()=>{
+    assert.equal(await todayAttribute('aria-pressed'),'false','Expected a fresh unselected fixture date');
+    return activateNative(await todayAttribute('aria-label'),'period-day-native',async()=>await todayAttribute('aria-pressed')==='true',{selection:true});
+  });
+  if(await todayAttribute('aria-pressed')!=='true'){console.warn('Fixture recovery: select period day via CDP');await clickSelector(todaySelector);}
+  await record('period-save-native',()=>activateNative('Done','period-save-native',async()=>!await periodEditOpen() && (await todayAttribute('aria-label'))?.includes('Period')));
+  if(await periodEditOpen()){console.warn('Fixture recovery: save period via CDP');await click('Done');}
+  await screen('calendar-period');
   await clickSelector('button[aria-current="date"]:not([aria-hidden="true"])');
   if(!await evaluate("!!document.querySelector('[role=tablist]')")) await clickSelector('button[aria-current="date"]:not([aria-hidden="true"])');
   await wait(()=>evaluate("!!document.querySelector('[role=tablist]')"),'daily log');
@@ -214,6 +271,30 @@ try {
   for(const tab of ['Mood','Body','Notes','Meds']){
     await click(tab,{selector:'[role="tab"]'}); await screen('daily-'+tab.toLowerCase());
   }
+  // Keep the screen captures above independent of the functional tests below.
+  await record('daily-functional-native',async()=>{
+    await nativeTab('Body','native-body-tab');
+    const symptom=await evaluate("document.querySelector('#daily-log-panel-symptoms button[aria-pressed=false]')?.textContent.trim()");
+    assert.ok(symptom,'No unselected built-in symptom');
+    const symptomSelected=()=>evaluate("[...document.querySelectorAll('#daily-log-panel-symptoms button')].some(e=>e.textContent.trim()==="+JSON.stringify(symptom)+" && e.getAttribute('aria-pressed')==='true')");
+    await activateNative(symptom,'native-symptom-select',symptomSelected,{selection:true});
+    await nativeTab('Notes','native-notes-tab');
+    const note='Accessibility test note';
+    const noteSaved=()=>evaluate("document.querySelector('textarea[aria-label=\"Notes\"]')?.value==="+JSON.stringify(note));
+    await activateNative('Notes','native-note-entry',noteSaved,{typeText:note});
+    await delay(900); // app debounces saves by 600 ms
+    await activateNative('Close','native-close-log',()=>evaluate("!document.querySelector('[role=tablist]')"));
+    // Existing data opens a day preview first; a second native activation edits it.
+    await activateNative(await todayAttribute('aria-label'),'native-reopen-day',async()=>await todayAttribute('aria-pressed')==='true');
+    if(!await evaluate("!!document.querySelector('[role=tablist]')")){
+      await activateNative(await todayAttribute('aria-label'),'native-reopen-editor',()=>evaluate("!!document.querySelector('[role=tablist]')"));
+    }
+    await nativeTab('Body','native-check-symptom-tab');
+    assert.ok(await symptomSelected(),'Symptom not retained after reopening day');
+    await nativeTab('Notes','native-check-note-tab');
+    assert.ok(await noteSaved(),'Note not retained after reopening day');
+    return {input:'talkback-native and synthetic keyboard',savedAfterReopen:true};
+  });
   await click('Insights',{selector:'nav button'}); await screen('insights');
   await click('Settings',{selector:'nav button'}); await screen('settings');
   await click('Reminders',{prefix:true}); await expectText('Notification Manager'); await screen('reminders');

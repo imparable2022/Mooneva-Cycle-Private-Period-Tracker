@@ -518,6 +518,8 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                                 <button
                                     key={tab.id}
                                     role="tab"
+                                    id={`daily-log-tab-${tab.id}`}
+                                    aria-controls={activeTab === tab.id ? `daily-log-panel-${tab.id}` : undefined}
                                     aria-selected={activeTab === tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`daily-log-tab flex-shrink-0 flex items-center justify-center px-3 py-2 rounded-xl text-[11px] font-semibold tracking-wide uppercase transition-all duration-200
@@ -558,7 +560,7 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                 ) : (
                     <>
                         {activeTab === 'flow' && (
-                            <section className="flex flex-col gap-4">
+                            <section role="tabpanel" id="daily-log-panel-flow" aria-labelledby="daily-log-tab-flow" className="flex flex-col gap-4">
                                 {!activePeriod && (
                                     <p className="daily-log-hint text-[11px] text-slate-500 text-center px-4">
                                         {t('log.spotting_hint_no_period')}
@@ -633,7 +635,7 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                         )}
 
                         {activeTab === 'mood' && (
-                            <section className="flex flex-col gap-3">
+                            <section role="tabpanel" id="daily-log-panel-mood" aria-labelledby="daily-log-tab-mood" className="flex flex-col gap-3">
                                 <div className="flex flex-wrap gap-x-4 gap-y-3 py-4 items-center justify-center max-w-[280px] mx-auto">
                                     {MOOD_OPTIONS.map(opt => (
                                         <MoodCircle
@@ -663,7 +665,7 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                         )}
 
                         {activeTab === 'symptoms' && (
-                            <section className="flex flex-col gap-4 py-2">
+                            <section role="tabpanel" id="daily-log-panel-symptoms" aria-labelledby="daily-log-tab-symptoms" className="flex flex-col gap-4 py-2">
                                 <div className="flex flex-col gap-1">
                                 <div className="flex flex-wrap gap-2">
                                     {displayedSymptoms
@@ -691,6 +693,7 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => setShowMoreSymptoms(open => !open)}
+                                        aria-expanded={showMoreSymptoms}
                                         className="self-center mt-1 px-2 py-0.5 text-[10px] font-semibold text-slate-400 hover:text-[#7598a0] transition-colors"
                                     >
                                         {showMoreSymptoms ? t('log.fewer_symptoms', 'Fewer symptoms') : t('log.more_symptoms', 'More symptoms')}
@@ -796,19 +799,19 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                         )}
 
                         {activeTab === 'notes' && (
-                            <section className="flex flex-col gap-3">
+                            <section role="tabpanel" id="daily-log-panel-notes" aria-labelledby="daily-log-tab-notes" className="flex flex-col gap-3">
                                 <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     aria-label={t('log.notes')}
                                     placeholder={t('log.add_note_placeholder', 'Add your notes specific to this date...')}
-                                    className="w-full min-h-[100px] p-3 text-xs font-medium text-slate-700 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-0 focus:border-slate-300 resize-none transition-all"
+                                    className="w-full min-h-[100px] p-3 text-xs font-medium text-slate-700 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-slate-700 focus-visible:ring-offset-2 resize-none transition-all"
                                 />
                             </section>
                         )}
 
                         {activeTab === 'pill' && (
-                            <section className="flex flex-col gap-4 py-2">
+                            <section role="tabpanel" id="daily-log-panel-pill" aria-labelledby="daily-log-tab-pill" className="flex flex-col gap-4 py-2">
                                 {(cycleVis.pillLog || pillTakenAt) && (<>
                                     <label
                                         className="daily-log-control-card flex items-center justify-between gap-3 p-4 bg-[#F0F2F5] rounded-xl border border-cyan-100/60 cursor-pointer transition-all active:scale-[0.99]"
@@ -829,10 +832,11 @@ const DailyLogPanel: React.FC<DailyLogPanelProps> = ({
                                             onChange={(event) => {
                                                 setPillTakenAt(event.target.checked ? formatLocalTimeHHmm() : undefined);
                                             }}
-                                            className="sr-only"
+                                            className="sr-only peer"
                                         />
                                         <div
-                                            className={`daily-log-check w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 border-2
+                                            aria-hidden="true"
+                                            className={`daily-log-check peer-focus-visible:ring-2 peer-focus-visible:ring-slate-700 peer-focus-visible:ring-offset-2 w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 border-2
                                             ${pillTakenAt
                                                     ? 'daily-log-check-on bg-cyan-50 border-cyan-400 text-cyan-600'
                                                     : 'daily-log-check-off bg-white border-transparent text-transparent shadow-[1px_1px_2px_rgba(163,177,198,0.4)]'}`}
